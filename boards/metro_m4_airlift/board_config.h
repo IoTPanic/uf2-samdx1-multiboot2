@@ -28,4 +28,7 @@
 #define BOOT_GCLK_ID_CORE                 SERCOM3_GCLK_ID_CORE
 #define BOOT_GCLK_ID_SLOW                 SERCOM3_GCLK_ID_SLOW
 
+#define ESP_RST PIN_PB05
+#define ESP_BUSY PIN_PB04
+
 #endif

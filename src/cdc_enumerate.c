@@ -1096,8 +1096,8 @@ void usb_init(void) {
 #include "usart_sam_ba.h"
 
 #if USE_UART
-#define UART(e)                                                                                    \
-    if (b_sam_ba_interface_usart)                                                                  \
+#define UART(e)                                                                                    
+    if (b_sam_ba_interface_usart)                                                                  
         return e;
 #else
 #define UART(e)

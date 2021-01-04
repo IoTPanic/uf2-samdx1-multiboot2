@@ -48,7 +48,7 @@
 // Enable reading flash via FAT files; otherwise drive will appear empty
 #define USE_FAT 1 // 272 bytes
 // Enable index.htm file on the drive
-#define USE_INDEX_HTM 1 // 132 bytes
+#define USE_INDEX_HTM 0 // 132 bytes
 // Enable USB CDC (Communication Device Class; i.e., USB serial) monitor for Arduino style flashing
 #define USE_CDC 1 // 1264 bytes (plus terminal, see below)
 // Support the UART (real serial port, not USB)
@@ -56,7 +56,7 @@
 // Support Human Interface Device (HID) - serial, flashing and debug
 #define USE_HID 1 // 788 bytes
 // Expose HID via WebUSB
-#define USE_WEBUSB 1
+#define USE_WEBUSB 0
 // Doesn't yet disable code, just enumeration
 #define USE_MSC 1
 
@@ -149,13 +149,13 @@
 #define COLOR_USB 0x000400
 #define COLOR_UART 0x040400
 #define COLOR_LEAVE 0x000000
-#define COLOR_NO_IMAGE 0x404040
+#define COLOR_NO_IMAGE 0x0EFFE0
 #else
 #define COLOR_START 0x000040
 #define COLOR_USB 0x004000
 #define COLOR_UART 0x404000
 #define COLOR_LEAVE 0x400040
-#define COLOR_NO_IMAGE 0x404040
+#define COLOR_NO_IMAGE 0x0EFFE0
 #endif
 
 /*
@@ -269,6 +269,12 @@ void system_init(void);
 #define LED_TICK led_tick
 
 #define PINOP(pin, OP) (PORT->Group[(pin) / 32].OP.reg = (1 << ((pin) % 32)))
+
+// Pin Input Enable
+#define PININEN(pin) (PORT->Group[(pin/32)].PINCFG[(((pin) % 32))].bit.INEN = 1)
+#define PINPULLEN(pin) (PORT->Group[(pin/32)].PINCFG[(((pin) % 32))].bit.PULLEN = 1)
+
+#define PINREAD(pin) (((PORT->Group[(pin/32)].IN.bit.IN)&(1 << ((pin) % 32)))>>((pin) % 32))
 
 void led_tick(void);
 void led_signal(void);

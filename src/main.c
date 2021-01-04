@@ -140,8 +140,8 @@ static void check_start_application(void) {
 
     // Check if the multiboot2 magic is present at the start address
     if (*(uint32_t *) app_start_address != 0xE85250D6) {
-        RGBLED_set_color(COLOR_NO_IMAGE);
-        return;
+        //RGBLED_set_color(COLOR_NO_IMAGE);
+        //0x0EFFE0while(1);
     }
 
 
@@ -249,6 +249,23 @@ int main(void) {
     delay(15);
 #endif
     led_init();
+    // Set the ESP32 reset pin to a known state in case it was pulled
+    // low
+    PINOP(ESP_RST, DIRSET);
+    PINOP(ESP_RST, OUTSET);
+
+    // Pass a little time to let the ESP32 bootloader start
+    for (int i = 1; i < 10000; ++i) {
+        asm("nop");
+    }
+
+    // Set a white color while we wait for the esp32 to boot
+    PININEN(ESP_BUSY);
+    RGBLED_set_color(0xA0A0A0);
+
+    // Wait until the ESP32 is connected to the MQTT server
+    while(!PINREAD(ESP_BUSY));
+    RGBLED_set_color(COLOR_NO_IMAGE);
 
     logmsg("Start");
     assert((uint32_t)&_etext < APP_START_ADDRESS);
@@ -259,7 +276,6 @@ int main(void) {
     assert(FLASH_PAGE_SIZE * NVMCTRL->PARAM.bit.NVMP == FLASH_SIZE);
 
     /* Jump in application if condition is satisfied */
-    RGBLED_set_color(COLOR_START);
     check_start_application();
 
     /* We have determined we should stay in the monitor. */
@@ -269,19 +285,24 @@ int main(void) {
     __DMB();
     __enable_irq();
 
-#if USE_UART
+    #if USE_UART
     /* UART is enabled in all cases */
     usart_open();
-#endif
+    #endif
 
     logmsg("Before main loop");
+    // uart_basic_init(SERCOM0, 115200, UART_RX_PAD1_TX_PAD0);
+    
+    // uart_write_byte(SERCOM0, 's');
+    // uart_write_byte(SERCOM0, 't');
+    //uart_write_byte(SERCOM0, '\n');
 
     usb_init();
 
     // not enumerated yet
-    // RGBLED_set_color(COLOR_START);
+    RGBLED_set_color(COLOR_START);
     led_tick_step = 10;
-
+    
     /* Wait for a complete enum on usb or a '#' char on serial line */
     while (1) {
         if (USB_Ok()) {
@@ -312,17 +333,7 @@ int main(void) {
                 sam_ba_monitor_run();
             }
         }
-#if USE_UART
-        /* Check if a '#' has been received */
-        if (!main_b_cdc_enable && usart_sharp_received()) {
-            RGBLED_set_color(COLOR_UART);
-            sam_ba_monitor_init(SAM_BA_INTERFACE_USART);
-            /* SAM-BA on UART loop */
-            while (1) {
-                sam_ba_monitor_run();
-            }
-        }
-#endif
+
 #else // no monitor
         if (main_b_cdc_enable) {
             process_msc();

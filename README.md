@@ -6,7 +6,16 @@
 
 This bootloader is made to boot the ovule microkernel on Adafruit SAMD51 and SAMD21 devices using a modified version of the GNU multiboot2 standard, with the only differencing being it follows an unofficial ARM extension, and the text section of the binary is not copied into system memory. The second point is done since all supported devices will be using a unified memory model.
 
-The bootloader sits at 0x00000000, and the application starts at 0x00002000 (SAMD21) or 0x00004000 (SAMD51).
+The bootloader sits at 0x00000000, and the application space starts at 0x00002000 (SAMD21) or 0x00004000 (SAMD51).
+
+We're going to follow this basic control flow-
+1. Entry into boot loader
+2. Check for double reset, or a fault indicating we failed to jump last reset, if so, configure clocks and wait for BIN over USB.
+3. Read boot image table to discover all modules, if failure, config clocks and await image.
+4. Read image tags from all modules within the table, if failure, config clocks and await image.
+5. Load modules into memory.
+6. Generate OS Information Tags
+7. Jump to OS.
 
 ## UF2
 

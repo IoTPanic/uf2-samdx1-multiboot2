@@ -4,19 +4,19 @@
 #define MULTIBOOT2
 
 #define MULTIBOOT_MAGIC 0xE85250D6
-#define MULTIBOOT_ARM7M_ISA 0x0A70
+#define MULTIBOOT_ARM7M_ISA 0x6D04
 #define MULTIBOOT_CHECKSUM_SUM 0x0
 
-#define MB_IMAGE_HEADER_TYPE_INFO_REQ = 0x01
-#define MB_IMAGE_HEADER_TYPE_ADDRESS = 0x02
-#define MB_IMAGE_HEADER_TYPE_ENTRY_ADDR = 0x03
-#define MB_IMAGE_HEADER_TYPE_ENTRY_ADDR_EFI_I386 = 0x08
-#define MB_IMAGE_HEADER_TYPE_ENTRY_ADDR_EFI_AMD64 = 0x09
-#define MB_IMAGE_HEADER_TYPE_FLAGS = 0x04
-#define MB_IMAGE_HEADER_TYPE_FRAMEBUFFER = 0x05
-#define MB_IMAGE_HEADER_TYPE_ALIGN_MODULE = 0x06
-#define MB_IMAGE_HEADER_TYPE_EFI_BOOT_SERVICES = 0x07
-#define MB_IMAGE_HEADER_TYPE_RELOCATABLE = 0x10 // Weird its not 0xA but thats the spec
+#define MB_IMAGE_HEADER_TYPE_INFO_REQ 0x01
+#define MB_IMAGE_HEADER_TYPE_ADDRESS 0x02
+#define MB_IMAGE_HEADER_TYPE_ENTRY_ADDR 0x03
+#define MB_IMAGE_HEADER_TYPE_ENTRY_ADDR_EFI_I386 0x08
+#define MB_IMAGE_HEADER_TYPE_ENTRY_ADDR_EFI_AMD64 0x09
+#define MB_IMAGE_HEADER_TYPE_FLAGS 0x04
+#define MB_IMAGE_HEADER_TYPE_FRAMEBUFFER 0x05
+#define MB_IMAGE_HEADER_TYPE_ALIGN_MODULE 0x06
+#define MB_IMAGE_HEADER_TYPE_EFI_BOOT_SERVICES 0x07
+#define MB_IMAGE_HEADER_TYPE_RELOCATABLE 0x10 // Weird its not 0xA but thats the spec
 
 #define MB_BOOT_INFO_BASIC_MEM_INFO 0x04
 #define MB_BOOT_INFO_BIOS_DEVICE 0x05
@@ -40,26 +40,30 @@
 #define MB_BOOT_INFO_EFI64_IMAGE_HPTR 0x20
 #define MB_BOOT_INFO_LOAD_ADDR 0x21
 
+#define MB_MAX_MODULES 5
+#define MB_MAX_TAGS 5
+#define MB_MAX_IMAGE_HEADER_LEN 255
+
 // Name from Makefile
-const char bootloader_name[] = NAME;
+const char bootloader_version[] = UF2_VERSION_BASE;
 
 // The image header is prependded to a image we wish to boot which will inform the
 // bootloader of basic details
-typedef struct {
+typedef struct ImageHeaderTag {
     uint32_t type;
     uint16_t flags;
     uint32_t size;
-    uint32_t *tags;
-    ImageHeaderTag *next;
+    uint32_t *data;
+    struct ImageHeaderTag *next;
 } ImageHeaderTag;
 
 // These tags are given to the OS after boot in order to be aware of other loaded
 // modules, where in physical memory itself was loaded, etc.
-typedef struct {
+typedef struct BootInfoTag {
     uint32_t type;
     uint32_t size;
     uint32_t *data;
-    BootInfoTag *next;
+    struct BootInfoTag *next;
 } BootInfoTag;
 
 #endif

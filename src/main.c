@@ -72,6 +72,8 @@
  */
 
 #include "uf2.h"
+#include "multiboot.h"
+#include "boot_table.h"
 
 static void check_start_application(void);
 
@@ -83,6 +85,29 @@ extern int8_t led_tick_step;
 #elif defined(SAMD51)
     #define RESET_CONTROLLER RSTC
 #endif
+
+typedef struct {
+    const BootVectorEntry *entry;
+    ImageHeaderTag image_tags[MB_MAX_TAGS];
+    uint8_t tags_loaded;
+} BootImage;
+
+#define KERNEL_OPTS(board, version) -b ## board ## -v ## version
+
+const char kernel_name[] = "ovule";
+const char kernel_opts[] = "";
+
+const BootVectorEntry h_boot_entries[] = {
+    {
+        id: 0,
+        flash_start: (uint32_t*)APP_START_ADDRESS,
+        flash_len: 16384,
+        module_name: kernel_name,
+        command_line_opts: kernel_opts,
+    }
+};
+
+int registered_module_cnt = sizeof(h_boot_entries) / sizeof(h_boot_entries[0]);
 
 /**
  * \brief Check the application startup condition
@@ -96,7 +121,7 @@ static void check_start_application(void) {
 
     /**
      * Test reset vector of application @APP_START_ADDRESS+4
-     * Sanity check on the Reset_Handler address
+     * Sanity check on the Reset_Handler address TODO update for MB2 standard
      */
     if (app_start_address < APP_START_ADDRESS || app_start_address > FLASH_SIZE) {
         /* Stay in bootloader */
@@ -138,11 +163,88 @@ static void check_start_application(void) {
     RGBLED_set_color(COLOR_LEAVE);
 #endif
 
-    // Check if the multiboot2 magic is present at the start address
-    if (*(uint32_t *) app_start_address != 0xE85250D6) {
-        //RGBLED_set_color(COLOR_NO_IMAGE);
-        //0x0EFFE0while(1);
+
+
+
+
+
+    /* 
+    This is the space for the MB2 code, we're going to add a lot of white space to make it obvious
+    We need to do a few things first, such as check all the boot modules and read their tags.
+    */
+    BootImage boot_images[MB_MAX_MODULES];
+    int images_loaded = 0;
+
+    for(int i = 0; i < registered_module_cnt; i++) {
+        // Check for the multiboot magic within the header
+        if (* h_boot_entries[i].flash_start != MULTIBOOT_MAGIC) {
+            // Not a valid image! We cannot load it
+            continue;
+        }
+
+        // Check to ensure the module is using the right ISA
+        if (*(h_boot_entries[i].flash_start + 4) != MULTIBOOT_ARM7M_ISA){
+            continue;
+        }
+
+        uint32_t header_len = *(h_boot_entries[i].flash_start + 8);
+        // Check the size of the header
+        if(header_len < 16 || header_len > MB_MAX_IMAGE_HEADER_LEN) {
+            continue;
+        }
+        
+        uint32_t checksum = 0 - (*(h_boot_entries[i].flash_start)) 
+            -  *(h_boot_entries[i].flash_start + 4) 
+            -  *(h_boot_entries[i].flash_start + 8);
+
+        
+        // Compare the calculated checksum with the checksum in the disk image
+        if(*(h_boot_entries[i].flash_start + 12)!=checksum) {
+            // For now lets still attempt to load it
+            // continue;
+        }
+
+        boot_images[images_loaded].entry = &h_boot_entries[i];
+
+        // Lets create an  array of tags so we can go through them when we create the OS
+        // info tags.
+        uint32_t *index = h_boot_entries[i].flash_start + 16;
+        while((uint32_t)index < ((uint32_t) h_boot_entries[i].flash_start) + header_len) {
+            boot_images[images_loaded].image_tags[boot_images[images_loaded].tags_loaded].type = *(uint16_t*)index;
+            boot_images[images_loaded].image_tags[boot_images[images_loaded].tags_loaded].flags = *(uint16_t*)(index+2);
+            boot_images[images_loaded].image_tags[boot_images[images_loaded].tags_loaded].size = *index+4;
+            boot_images[images_loaded].image_tags[boot_images[images_loaded].tags_loaded].data = *index+8;
+            index += boot_images[images_loaded].image_tags[boot_images[images_loaded].tags_loaded].size + 8;
+        }
+        images_loaded++;
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     // Jump to kernel

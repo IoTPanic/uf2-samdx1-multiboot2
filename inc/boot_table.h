@@ -3,16 +3,17 @@
 #include "uf2.h"
 
 typedef struct {
-    
-} BootModules;
+    uint32_t id;
+    uint32_t *flash_start;
+    uint32_t flash_len;
+    const char *module_name;
+    const char *command_line_opts;
+} BootVectorEntry;
 
 typedef struct {
-    uint32_t id;
-    uint32_t flash_start;
-    uint32_t flash_end;
-    char *image_name;
-    char *command_line_opts;
-    BootVectorEntry *next;
-} BootVectorEntry;
+    uint32_t crc;
+    int module_cnt;
+    const BootVectorEntry *entry;
+} BootModules;
 
 #endif

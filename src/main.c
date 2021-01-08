@@ -87,10 +87,19 @@ extern int8_t led_tick_step;
 #endif
 
 typedef struct {
+    bool valid; 
     const BootVectorEntry *entry;
     ImageHeaderTag image_tags[MB_MAX_TAGS];
     uint8_t tags_loaded;
+    MemorySpace memory_space;
 } BootImage;
+
+typedef struct {
+    uint32_t mem_start;
+    uint32_t mem_end;
+    uint32_t flash_start;
+    uint32_t flash_end;
+} MemorySpace;
 
 #define KERNEL_OPTS(board, version) -b ## board ## -v ## version
 
@@ -172,8 +181,8 @@ static void check_start_application(void) {
     This is the space for the MB2 code, we're going to add a lot of white space to make it obvious
     We need to do a few things first, such as check all the boot modules and read their tags.
     */
-    BootImage boot_images[MB_MAX_MODULES];
-    int images_loaded = 0;
+    BootImage boot_modules[MB_MAX_MODULES];
+    int modules_to_load = 0;
 
     for(int i = 0; i < registered_module_cnt; i++) {
         // Check for the multiboot magic within the header
@@ -204,22 +213,68 @@ static void check_start_application(void) {
             // continue;
         }
 
-        boot_images[images_loaded].entry = &h_boot_entries[i];
+        boot_modules[modules_to_load].entry = &h_boot_entries[i];
 
         // Lets create an  array of tags so we can go through them when we create the OS
         // info tags.
         uint32_t *index = h_boot_entries[i].flash_start + 16;
         while((uint32_t)index < ((uint32_t) h_boot_entries[i].flash_start) + header_len) {
-            boot_images[images_loaded].image_tags[boot_images[images_loaded].tags_loaded].type = *(uint16_t*)index;
-            boot_images[images_loaded].image_tags[boot_images[images_loaded].tags_loaded].flags = *(uint16_t*)(index+2);
-            boot_images[images_loaded].image_tags[boot_images[images_loaded].tags_loaded].size = *index+4;
-            boot_images[images_loaded].image_tags[boot_images[images_loaded].tags_loaded].data = *index+8;
-            index += boot_images[images_loaded].image_tags[boot_images[images_loaded].tags_loaded].size + 8;
+            boot_modules[modules_to_load].image_tags[boot_modules[modules_to_load].tags_loaded].type = *(uint16_t*)index;
+            boot_modules[modules_to_load].image_tags[boot_modules[modules_to_load].tags_loaded].flags = *(uint16_t*)(index+2);
+            boot_modules[modules_to_load].image_tags[boot_modules[modules_to_load].tags_loaded].size = *(index+4);
+            boot_modules[modules_to_load].image_tags[boot_modules[modules_to_load].tags_loaded].data = index+8;
+            index += boot_modules[modules_to_load].image_tags[boot_modules[modules_to_load].tags_loaded].size + 8;
         }
-        images_loaded++;
+        ++modules_to_load;
     }
 
+    uint32_t info_requests[MB_MAX_MB_REQ];
+    int info_req_cnt = 0;
 
+    // Now we need to validate, and 
+    for(int i =0; i < modules_to_load; i++) {
+        
+        /*
+            What do we need for a valid image?
+
+                1. Module memory does not overlap other modules and all modules can fit into memory
+                2. Tags are of a valid type and contain valid data
+
+        */
+
+        // Iterator over tags in modules
+        for(int m = 0; m < boot_modules[modules_to_load].tags_loaded; m++){
+            switch(boot_modules[modules_to_load].image_tags[m].type){
+                case MB_IMAGE_HEADER_TYPE_INFO_REQ:
+                // Lets assemble out info requests into an array
+                for(int iri = 0; iri < boot_modules[modules_to_load].image_tags[m].size / 4; iri++){
+                    if(boot_modules[modules_to_load].image_tags[m].data[iri] > 0x21) {
+                        info_requests[info_req_cnt++] = boot_modules[modules_to_load].image_tags[m].data[iri];
+                    }
+                }
+                break;
+                case MB_IMAGE_HEADER_TYPE_ADDRESS:
+                
+                break;
+                case MB_IMAGE_HEADER_TYPE_ENTRY_ADDR:
+                // TODO must be implemented
+                break;
+                case MB_IMAGE_HEADER_TYPE_ENTRY_ADDR_EFI_I386:
+                case MB_IMAGE_HEADER_TYPE_ENTRY_ADDR_EFI_AMD64:
+                case MB_IMAGE_HEADER_TYPE_FLAGS:
+                case MB_IMAGE_HEADER_TYPE_FRAMEBUFFER:
+                // We are not going to have a display
+                continue;
+                case MB_IMAGE_HEADER_TYPE_ALIGN_MODULE:
+                // TODO we need to align 
+
+                case MB_IMAGE_HEADER_TYPE_EFI_BOOT_SERVICES:
+                // TODO we need to assert some error in loading the module
+                break;
+                case MB_IMAGE_HEADER_TYPE_RELOCATABLE:
+            }
+        }
+    }
 
 
 

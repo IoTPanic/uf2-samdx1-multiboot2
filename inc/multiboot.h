@@ -43,6 +43,7 @@
 #define MB_MAX_MODULES 5
 #define MB_MAX_TAGS 5
 #define MB_MAX_IMAGE_HEADER_LEN 255
+#define MB_MAX_MB_REQ 5
 
 // Name from Makefile
 const char bootloader_version[] = UF2_VERSION_BASE;

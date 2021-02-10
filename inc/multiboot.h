@@ -45,17 +45,19 @@
 #define MB_MAX_IMAGE_HEADER_LEN 255
 #define MB_MAX_MB_REQ 5
 
+#define MB_NAME(VER) "uf2_adafruit_mb_" #VER
+
 // Name from Makefile
 const char bootloader_version[] = UF2_VERSION_BASE;
+const char bootloader_name[] =  MB_NAME(UF2_VERSION_BASE);
 
 // The image header is prependded to a image we wish to boot which will inform the
 // bootloader of basic details
 typedef struct ImageHeaderTag {
-    uint32_t type;
+    uint16_t type;
     uint16_t flags;
     uint32_t size;
-    uint32_t *data;
-    struct ImageHeaderTag *next;
+    uint8_t *data;
 } ImageHeaderTag;
 
 // These tags are given to the OS after boot in order to be aware of other loaded
@@ -63,8 +65,12 @@ typedef struct ImageHeaderTag {
 typedef struct BootInfoTag {
     uint32_t type;
     uint32_t size;
-    uint32_t *data;
-    struct BootInfoTag *next;
+    uint8_t *data;
 } BootInfoTag;
+
+// Find a multiboot header within a binary, it must be within the first 32768 bytes
+uint8_t *find_multiboot_header(uint8_t *start);
+
+int decode_multiboot_image_headers(uint8_t *start, ImageHeaderTag *result, int result_len);
 
 #endif

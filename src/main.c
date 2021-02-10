@@ -95,10 +95,8 @@ typedef struct {
 } BootImage;
 
 typedef struct {
-    uint32_t mem_start;
-    uint32_t mem_end;
-    uint32_t flash_start;
-    uint32_t flash_end;
+    uint32_t start;
+    uint32_t end;
 } MemorySpace;
 
 #define KERNEL_OPTS(board, version) -b ## board ## -v ## version
@@ -254,7 +252,7 @@ static void check_start_application(void) {
                 }
                 break;
                 case MB_IMAGE_HEADER_TYPE_ADDRESS:
-                
+
                 break;
                 case MB_IMAGE_HEADER_TYPE_ENTRY_ADDR:
                 // TODO must be implemented
